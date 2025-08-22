@@ -8,7 +8,7 @@ apt-get update && apt-get upgrade -y
 apt-get install -y git software-properties-common curl
 add-apt-repository ppa:deadsnakes/ppa -y
 apt-get update
-apt-get install -y python3.7 python3.7-venv build-essential python3.7-dev libosmesa6-dev libgl1-mesa-dev libglu1-mesa-dev dos2unix
+apt-get install -y python3.7 python3.7-venv build-essential python3.7-dev libosmesa6-dev libgl1-mesa-dev libglu1-mesa-dev dos2unix freeglut3-dev
 
 echo ""
 echo "================================================================"
