@@ -1,2 +1,12 @@
 deeplab_model
 models
+
+# Ambiente Virtual
+venv/
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+
+# Arquivos de Swap do Editor (vi/vim)
+*.swp
