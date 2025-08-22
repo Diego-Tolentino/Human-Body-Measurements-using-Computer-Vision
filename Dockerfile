@@ -1,34 +1,32 @@
+# Usar uma imagem base do Python 3.7
 FROM python:3.7-slim
 
-ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-
+# Definir o diretório de trabalho
 WORKDIR /app
 
-# Instala dependências do sistema para OpenCV e outras bibliotecas
-RUN apt-get update && \
-    apt-get install -y \
-      build-essential \
-      libgl1-mesa-dev \
-      libglu1-mesa-dev \
-      libosmesa6-dev \
-      pkg-config \
-      libglib2.0-0 \
-      libsm6 \
-      libxext6 \
-      libxrender1 \
+# Adicionar o diretório ao PYTHONPATH para resolver importações
+ENV PYTHONPATH /app
+
+# Instalar todas as dependências do sistema que descobrimos
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    python3.7-dev \
+    libosmesa6-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    wget \
+    freeglut3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia requirements e instala dependências Python
-COPY requirements.txt .
-RUN pip install numpy==1.19.5 && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir 'protobuf<3.20' Flask
-
-# Copia o restante do código
+# Copiar os arquivos do projeto
 COPY . .
 
-# Expõe a porta da API Flask
+# Executar o script de instalação (com todas as correções)
+RUN chmod +x install.sh && ./install.sh
+
+# Expor a porta da aplicação
 EXPOSE 8080
 
-# Define o entrypoint para rodar o servidor Flask
-CMD ["python", "app.py"]
+# Comando para iniciar a aplicação
+CMD ["/app/venv/bin/python", "app.py"]

@@ -13,6 +13,7 @@ def measure():
         return jsonify({"error": "Missing 'image_path' or 'height'"}), 400
 
     try:
+        # Nota: O Dockerfile garante que este comando é executado no diretório correto.
         result = subprocess.run(
             ["python", "inference.py", "-i", image_path, "-ht", str(height)],
             capture_output=True,
