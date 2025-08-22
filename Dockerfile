@@ -1,5 +1,5 @@
 # Usar uma imagem base do Python 3.7
-FROM python:3.7-slim
+FROM python:3.7-slim-buster
 
 # Definir o diretório de trabalho
 WORKDIR /app
