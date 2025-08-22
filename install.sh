@@ -18,7 +18,7 @@ pip install numpy cython wheel
 pip install protobuf==3.20.0 Flask
 
 # 5. Instala todas as outras bibliotecas do requirements.txt
-pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 
 # Verifica se a instalação foi bem-sucedida
 if [ $? -ne 0 ]; then
