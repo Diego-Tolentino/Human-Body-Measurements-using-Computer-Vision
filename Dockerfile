@@ -1,13 +1,13 @@
-# Usar uma imagem base do Python 3.7 (variante buster para manter compatibilidade)
+# Usar uma imagem base do Python 3.7 (variante buster para compatibilidade)
 FROM python:3.7-slim-buster
 
 # Definir o diretório de trabalho
 WORKDIR /app
 
-# Corrigir formato do ENV
+# Adicionar o diretório ao PYTHONPATH para resolver importações
 ENV PYTHONPATH=/app
 
-# Instalar dependências do sistema (sem python3.7-dev)
+# Instalar dependências de sistema (sem python3.7-dev)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
