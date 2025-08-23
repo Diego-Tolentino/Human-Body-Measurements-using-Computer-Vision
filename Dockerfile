@@ -1,32 +1,32 @@
-# Usar uma imagem base do Python 3.7
+# Usar uma imagem base do Python 3.7 (variante buster para manter compatibilidade)
 FROM python:3.7-slim-buster
 
-# Definir o diret√≥rio de trabalho
+# Definir o diretÛrio de trabalho
 WORKDIR /app
 
-# Adicionar o diret√≥rio ao PYTHONPATH para resolver importa√ß√µes
-ENV PYTHONPATH /app
+# Corrigir formato do ENV
+ENV PYTHONPATH=/app
 
-# Instalar todas as depend√™ncias do sistema que descobrimos
+# Instalar dependÍncias do sistema (sem python3.7-dev)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
-    python3.7-dev \
     libosmesa6-dev \
     libgl1-mesa-dev \
     libglu1-mesa-dev \
     wget \
     freeglut3-dev \
-    && rm -rf /var/lib/apt/lists/*
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copiar os arquivos do projeto
 COPY . .
 
-# Executar o script de instala√ß√£o (com todas as corre√ß√µes)
+# Executar o script de instalaÁ„o
 RUN chmod +x install.sh && ./install.sh
 
-# Expor a porta da aplica√ß√£o
+# Expor a porta da aplicaÁ„o
 EXPOSE 8080
 
-# Comando para iniciar a aplica√ß√£o
+# Comando para iniciar a aplicaÁ„o
 CMD ["/app/venv/bin/python", "app.py"]
