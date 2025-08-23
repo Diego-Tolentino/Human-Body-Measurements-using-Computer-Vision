@@ -14,6 +14,10 @@ IMAGE_NAME="human-measurements"
 CONTAINER_NAME="human-measurements"
 HOST_PORT="8080"
 CONTAINER_PORT="8080"
+# --- NOVO: Configurações do Volume Compartilhado ---
+HOST_SHARED_DIR="/srv/shared_images"
+CONTAINER_SHARED_DIR="/app/shared_images"
+
 
 ### =========================
 ### Funções auxiliares
@@ -37,7 +41,7 @@ have_cmd() { command -v "$1" >/dev/null 2>&1; }
 ### =========================
 ensure_docker() {
   log "======================================================"
-  log "=== PASSO 1/5: Preparando e Instalando o Docker    ==="
+  log "=== PASSO 1/6: Preparando e Instalando o Docker    ==="
   log "======================================================"
 
   apt-get update -y
@@ -57,7 +61,7 @@ ensure_docker() {
     echo \
 "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
 https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" \
-      > /etc/apt/sources.list.d/docker.list
+      > /etc/sources.list.d/docker.list
 
     apt-get update -y
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -81,7 +85,7 @@ https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" \
 ### =========================
 pull_code() {
   log "======================================================"
-  log "=== PASSO 2/5: Baixando/Atualizando a Aplicação    ==="
+  log "=== PASSO 2/6: Baixando/Atualizando a Aplicação    ==="
   log "======================================================"
 
   if ! have_cmd git; then
@@ -90,9 +94,10 @@ pull_code() {
 
   if [[ -d "$APP_DIR/.git" ]]; then
     log "Diretório Git encontrado. Atualizando..."
+    # Corrigido para usar a branch 'master' como vimos que é a correta
     git -C "$APP_DIR" fetch --all --prune
-    git -C "$APP_DIR" reset --hard origin/main
-    ok "Repositório sincronizado com origin/main."
+    git -C "$APP_DIR" reset --hard origin/master
+    ok "Repositório sincronizado com origin/master."
   elif [[ -d "$APP_DIR" ]]; then
     warn "Diretório '$APP_DIR' existe mas não é um repositório Git."
     TS=$(date +%Y%m%d-%H%M%S)
@@ -114,7 +119,7 @@ pull_code() {
 ### =========================
 patch_dockerfile() {
   log "======================================================"
-  log "=== PASSO 3/5: Validando e Corrigindo Dockerfile   ==="
+  log "=== PASSO 3/6: Validando e Corrigindo Dockerfile   ==="
   log "======================================================"
 
   local df="$APP_DIR/Dockerfile"
@@ -125,33 +130,24 @@ patch_dockerfile() {
   cp -a "$df" "${df}.bak-${ts}"
 
   # 1) Garantir base compatível: python:3.7-slim-buster
-  #    - Se houver uma linha FROM python:* troca para 3.7-slim-buster
   if grep -Eq '^FROM[[:space:]]+python:' "$df"; then
     sed -i -E 's|^FROM[[:space:]]+python:.*$|FROM python:3.7-slim-buster|' "$df"
   else
-    # Se não houver FROM python:, mantemos, mas avisamos (caso seja multi-stage ou custom)
     warn "Dockerfile não declara FROM python:*. Mantendo base original."
   fi
 
   # 2) Corrigir ENV legado: "ENV KEY value" -> "ENV KEY=value"
-  #    Ajuste apenas da linha do PYTHONPATH, se presente.
   if grep -Eq '^ENV[[:space:]]+PYTHONPATH[[:space:]]+/app' "$df"; then
     sed -i -E 's|^ENV[[:space:]]+PYTHONPATH[[:space:]]+/app|ENV PYTHONPATH=/app|' "$df"
   fi
 
-  # 3) Remover python3.7-dev do apt-get install (quebra no bookworm e é desnecessário na maioria dos casos)
-  #    Remove o token, preservando barras e vírgulas.
+  # 3) Remover python3.7-dev do apt-get install
   sed -i -E 's/[[:space:]]*python3\.7-dev[[:space:]]*\\?//g' "$df"
-  # Remover possíveis espaços múltiplos/dobras de linha "|| true"
-  # (não necessário, mas dá uma limpada se ficar linha em branco com '\')
   sed -i -E ':a;N;$!ba;s/\\[[:space:]]*\n[[:space:]]*\\/\n    \\/g' "$df"
 
-  # 4) Garantir limpeza de cache apt (boa prática)
-  if grep -Eq 'apt-get install .* && rm -rf /var/lib/apt/lists/\*' "$df"; then
-    :
-  else
-    # tenta inserir rm -rf no final da RUN do apt-get install, se possível
-    sed -i -E 's|(apt-get install -y --no-install-recommends[^\n]*)(\n)|\1 \&\& rm -rf /var/lib/apt/lists/*\n|g' "$df" || true
+  # 4) Garantir limpeza de cache apt
+  if ! grep -q 'rm -rf /var/lib/apt/lists/\*' "$df"; then
+    sed -i -E 's|(apt-get install .*$)|\1 \&\& rm -rf /var/lib/apt/lists/\*|' "$df"
   fi
 
   ok "Dockerfile validado e (se necessário) corrigido."
@@ -162,7 +158,7 @@ patch_dockerfile() {
 ### =========================
 build_image() {
   log "======================================================"
-  log "=== PASSO 4/5: Construindo a Imagem Docker         ==="
+  log "=== PASSO 4/6: Construindo a Imagem Docker         ==="
   log "======================================================"
 
   local df="$APP_DIR/Dockerfile"
@@ -175,11 +171,25 @@ build_image() {
 }
 
 ### =========================
-### Passo 5 — Run container
+### NOVO: Passo 5 — Criar diretório compartilhado
+### =========================
+create_shared_dir() {
+  log "======================================================"
+  log "=== PASSO 5/6: Criando a Pasta Compartilhada       ==="
+  log "======================================================"
+  log "Criando diretório no host: ${HOST_SHARED_DIR}"
+  mkdir -p "$HOST_SHARED_DIR"
+  # Dando permissão total para evitar problemas entre containers
+  chmod 777 "$HOST_SHARED_DIR"
+  ok "Diretório compartilhado pronto."
+}
+
+### =========================
+### Passo 6 — Run container
 ### =========================
 run_container() {
   log "======================================================"
-  log "=== PASSO 5/5: Iniciando a Aplicação               ==="
+  log "=== PASSO 6/6: Iniciando a Aplicação             ==="
   log "======================================================"
 
   if docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER_NAME"; then
@@ -187,14 +197,17 @@ run_container() {
     docker rm -f "$CONTAINER_NAME" >/dev/null
   fi
 
+  log "Iniciando container com volume compartilhado..."
   docker run -d \
     --name "$CONTAINER_NAME" \
     --restart unless-stopped \
     -p "${HOST_PORT}:${CONTAINER_PORT}" \
+    -v "${HOST_SHARED_DIR}:${CONTAINER_SHARED_DIR}" \
     "$IMAGE_NAME:latest"
 
   ok "Container '$CONTAINER_NAME' iniciado."
   log "Porta mapeada: http://SEU_IP:${HOST_PORT}"
+  log "Pasta da VPS '${HOST_SHARED_DIR}' está conectada à pasta '${CONTAINER_SHARED_DIR}' no container."
 
   docker ps --filter "name=${CONTAINER_NAME}"
   echo
@@ -213,9 +226,10 @@ ensure_docker
 pull_code
 patch_dockerfile
 build_image
+create_shared_dir
 run_container
 
 ok "================================================================================="
 ok " Instalação finalizada! A aplicação está disponível na porta ${HOST_PORT}."
-ok " Gerencie pelo Portainer (se instalado) ou via CLI (docker logs ${CONTAINER_NAME})."
+ok " Lembre-se de mapear o volume do n8n para a pasta: ${HOST_SHARED_DIR}"
 ok "================================================================================="
