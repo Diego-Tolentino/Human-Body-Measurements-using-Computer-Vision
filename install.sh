@@ -10,16 +10,19 @@ source venv/bin/activate
 
 echo ">> Ambiente virtual criado e ativado."
 echo ">> Atualizando instaladores (pip/setuptools/wheel)..."
-python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+python -m pip install --no-cache-dir --upgrade pip wheel "setuptools<58"
 
 echo ">> Instalando pré-requisitos (compilações mais comuns)..."
-python -m pip install --no-cache-dir numpy cython wheel
+python -m pip install --no-cache-dir "numpy==1.16.4" cython wheel
 
 echo ">> Instalando pacotes específicos e Flask..."
 python -m pip install --no-cache-dir 'protobuf==3.20.*' Flask
 
 echo ">> Instalando dependências do requirements.txt..."
 python -m pip install --no-cache-dir -r requirements.txt
+
+echo ">> Forçando a reinstalação limpa do opendr..."
+python -m pip install --no-cache-dir --force-reinstall --no-deps opendr==0.78
 
 echo ">> Baixando os arquivos de modelo..."
 mkdir -p models

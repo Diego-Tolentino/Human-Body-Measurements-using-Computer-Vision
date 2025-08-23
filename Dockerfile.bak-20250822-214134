@@ -7,20 +7,13 @@ WORKDIR /app
 # Adicionar o diretório ao PYTHONPATH para resolver importações
 ENV PYTHONPATH=/app
 
-# Corrigir repositórios do Debian Buster para usar o archive
-RUN echo "deb http://archive.debian.org/debian/ buster main" > /etc/apt/sources.list && \
-    echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list && \
-    echo "deb http://archive.debian.org/debian/ buster-updates main" >> /etc/apt/sources.list
-
 # Instalar dependências de sistema (sem python3.7-dev)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
     libosmesa6-dev \
     libgl1-mesa-dev \
-    libgl1-mesa-glx \
     libglu1-mesa-dev \
-    libglib2.0-0 \
     wget \
     freeglut3-dev \
   && apt-get clean \
@@ -36,6 +29,4 @@ RUN chmod +x install.sh && ./install.sh
 EXPOSE 8080
 
 # Comando para iniciar a aplicação
-CMD ["/bin/bash", "-c", "source /app/venv/bin/activate && python app.py"]
-
-
+CMD ["/app/venv/bin/python", "app.py"]
