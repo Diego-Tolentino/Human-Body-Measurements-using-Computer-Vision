@@ -91,8 +91,8 @@ pull_code() {
   if [[ -d "$APP_DIR/.git" ]]; then
     log "Diretório Git encontrado. Atualizando..."
     git -C "$APP_DIR" fetch --all --prune
-    git -C "$APP_DIR" reset --hard origin/master
-    ok "Repositório sincronizado com origin/master."
+    git -C "$APP_DIR" reset --hard origin/main
+    ok "Repositório sincronizado com origin/main."
   elif [[ -d "$APP_DIR" ]]; then
     warn "Diretório '$APP_DIR' existe mas não é um repositório Git."
     TS=$(date +%Y%m%d-%H%M%S)
@@ -107,7 +107,7 @@ pull_code() {
     git clone "$REPO_URL" "$APP_DIR"
     ok "Clonado."
   fi
-}
+  }
 
 ### =========================
 ### Passo 3 — Validar/patch Dockerfile
